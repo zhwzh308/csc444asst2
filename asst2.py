@@ -10,9 +10,12 @@ import sqlite3
 
 # get current directory path
 cwd = os.getcwd()
+print len(sys.argv), "arguments supplied."
 # Running the script alone is not supported.
 if (len(sys.argv) == 1):
     print "Running this script with no argument is not supported!"
+    print " In order to work with this SCM, you need to use command such as"
+    print " cwd:current working dir\ninfo:about this program\nstatus:system status of this directory\nlist:list all files under this directory(non-recursively)\n"
 elif (len(sys.argv)==2):
     if (sys.argv[1] == "cwd"):
         print "your are executing", os.path.abspath(sys.argv[0]), "in", cwd
@@ -33,10 +36,31 @@ elif (len(sys.argv)==2):
         print "The directory contains the following files:"
         for file in files:
             print " -",file
+    else:
+        print sys.argv[1], "(command not reconized)"
 # Command type 2: argc = 3
 # this.py 
-elif (len(sys.argv) >= 3):
-    print "3 or more arg's: Currently under development. Why not coming back later??"
+elif (len(sys.argv) == 3):
+    print "3 or more arg's: Currently under development."
+    if (sys.argv[1] == "add"):
+        try:
+            with open('myDB.db'):
+                print "Adding file",sys.argv[2],"to the SCM database"
+        except IOError:
+            print 'Creating database.'
+            try:
+                with open('myDB.db'):
+                    print "Opearation succeeded. Adding file into the database."
+            except IOError:
+                # For now it would report error.
+                print 'Database creation failed. Check if you have right to the directory', cwd
+    elif (sys.argv[1] == "del"):
+        print "delete file",sys.argv[2],"from database"
+    else:
+        print sys.argv[1],"is not supported."
+else:
+    print "Support for",len(sys.argv),"arg's are coming out soon"
+
 
 
 # Database object. Pending. 
