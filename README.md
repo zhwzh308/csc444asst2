@@ -11,14 +11,14 @@ Description
 
 Specification
 -------------------------
-1. 1 argument
+* 1 argument
 
     $ python asst2.py
 
 - This will return the unsupported message. While advising user to use specific commands.
 - So that user can learn from the message, what are the available operations about this program.
 
-2. 2 arguments
+* 2 arguments
 
     $ python asst2.py cwd
     $ python asst2.py status
@@ -27,7 +27,7 @@ Specification
 
 - This offers user information under the cwd, whether the status of this directory is under SCM or not.
 
-3. 3 or more arguments
+* 3 or more arguments
 
     $ python asst2.py add *
     $ python asst2.py del *
