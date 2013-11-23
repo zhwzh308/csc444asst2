@@ -59,7 +59,12 @@ elif (len(sys.argv) == 3):
     else:
         print sys.argv[1],"is not supported."
 else:
-    print "Support for",len(sys.argv),"arg's are coming out soon"
+    if (sys.argv[1]=='add'):
+        print "adding "
+    elif (sys.argv[2]=='del'):
+        print "deleting "
+    else:
+        print "not supported"
 
 
 
