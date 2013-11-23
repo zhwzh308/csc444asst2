@@ -1,6 +1,6 @@
 CSC444 Assignment 2: Source Code Management System
 ==============
-*View the [source of this content](http://github.github.com/zhwzh308/csc444asst2).*
+*View the [source of this content](http://github.com/zhwzh308/csc444asst2).*
 
 Description
 -------------------------
