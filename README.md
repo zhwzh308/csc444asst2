@@ -8,6 +8,7 @@ Description
 2. The scope of this project is to satisfy the specification ONLY.
 3. We recommand that you do not use this for your own project source management, because it has dependancy of sqlite3.
 4. The command line interface takes from 1 to n arguments and the layout is specified by the following section
+5. DEMO
 
 Specification
 -------------------------
