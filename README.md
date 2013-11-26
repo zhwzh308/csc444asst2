@@ -13,7 +13,10 @@ Description
 Specification
 -------------------------
 * 1 argument
-    '$ python asst2.py'
+    $ python asst2.py
+    def my_function
+        puts("multiply")
+    end
 
 - This will return the unsupported message. While advising user to use specific commands.
 - So that user can learn from the message, what are the available operations about this program.
