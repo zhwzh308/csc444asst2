@@ -22,6 +22,7 @@ Specification
 * 2 arguments
 
     $ python asst2.py cwd
+    $ python asst2.py init
     $ python asst2.py status
     $ python asst2.py info
     $ python asst2.py list
