@@ -13,10 +13,19 @@ def databaseVerifier(filename):
         return False
 
 # get current directory path
-def main():
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv
+        # etc. replacing sys.argv with argv  in the getopt call.
     cwd = os.getcwd()
     print len(sys.argv), "arguments supplied."
-    # Running the script alone is not supported.
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"h",["help"])
+    except getopt.getopt.error, msg:
+        print msg
+        print "for help use --help"
+        return 2
+    print opts
     if (len(sys.argv) == 1):
         print "Running this script with no argument is not supported!"
         print "In order to work with this SCM, you need to use command such as"
@@ -72,7 +81,7 @@ def main():
 
 # End of main
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
 
 def myDB(object):
     pass
