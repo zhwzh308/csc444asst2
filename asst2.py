@@ -1,11 +1,8 @@
 # This is template assignment 2
 import sys, os, getopt, io, errno
+# sys supports the commandline arguments.
 import shutil
 # for shell utility
-import time
-# sys supports the commandline arguments.
-import sqlite3
-# sqlite3 is used to establish a database for query
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -20,13 +17,16 @@ def fileExist(filename):
 
 def addFile(filename):
     srcfolder = os.getcwd()
-    srcfile = srcfolder+'/'+filename
-    destfolder = srcfolder + '/.scm'
-    result = shutil.copy(srcfile, destfolder)
+    srcfile = os.path.join(srcfolder, filename)
+    destfolder = os.path.join(srcfolder, '.scm')
+    return shutil.copy(srcfile, destfolder)
+
+def commitFile(filename):
+
 
 def folderExist(foldername):
     cwd = os.getcwd()
-    path = cwd+'/'+foldername
+    path = os.path.join(cwd, foldername)
     if os.path.exists(path):
         return os.path.isdir(path)
     else:
@@ -43,8 +43,8 @@ def scmInit(path):
 
 def fileUnderControl(filename):
     if fileExist(filename) and folderExist('.scm'):
-        destfolder = os.getcwd()+'/.scm'
-        if fileExist(destfolder+'/'+filename):
+        destfolder = os.path.join(os.getcwd(),'.scm')
+        if fileExist(os.path.join(destfolder, filename)):
             return True
         else:
             return False
@@ -68,7 +68,7 @@ def processArgs(argc, argv):
     elif argc == 2:
         if argv[0] == 'status':
             if (folderExist(scmdir)):
-                print "SCM folder exist."
+                print "SCM is enabled in current folder."
             else:
                 print "No file in this directory is under SCM."
         elif argv[0] == 'add':
@@ -79,23 +79,26 @@ def processArgs(argc, argv):
                 print "nothing to be done - this directory has file under SCM."
             else:
                 scmInit(scmdir)
-                print "Initiate Source Control..."
+                print "Initiate Source Control... done"
         elif argv[0] == 'help':
             helpUserMakeDecision()
+        elif argv[0] == 'commit':
+            print "commit"
         else:
             print argv[0], "- command not reconized. Type help for help."
     elif argc >= 3:
-        if argv[0] == 'status':
-            pass
-        elif argv[0] == 'add':
-            print 'adding:'
-            for item in argv[1:]:
-                if fileUnderControl(item):
-                    print ' -',item
-                else:
-                    addFile(item)
-                    print ' -',item,'added.'
-            print 'done.'
+        if argv[0] == 'add':
+            if folderExist(scmdir):
+                print 'adding:'
+                for item in argv[1:]:
+                    if fileUnderControl(item):
+                        print ' -',item,'already exist'
+                    else:
+                        addFile(item)
+                        print ' -',item,'added.'
+                print 'done.'
+            else:
+                print "Initiate the tool first: python asst2.py init"
         else:
             print argv[0], 'is not supported.'
     else:
