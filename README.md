@@ -18,12 +18,13 @@ Specification
 - So that user can learn from the message, what are the available operations about this program.
 
 * 2 arguments
+```
     $ python asst2.py cwd
     $ python asst2.py init
     $ python asst2.py status
     $ python asst2.py info
     $ python asst2.py list
-
+```
 - This offers user information under the cwd, whether the status of this directory is under SCM or not.
 
 * 3 or more arguments
