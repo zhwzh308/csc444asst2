@@ -1,8 +1,17 @@
 # This is template assignment 2
-import sys, os, getopt, io, errno
+import sys, os, getopt, io, filecmp, errno
 # sys supports the commandline arguments.
 import shutil
 # for shell utility
+from difflib import Differ, SequenceMatcher
+#Each line of a Differ delta begins with a two-letter code:
+#'- '    line unique to sequence 1
+#'+ '    line unique to sequence 2
+#'  '    line common to both sequences
+#'? '    line not present in either input sequence
+
+from pprint import pprint
+# Print diff
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -16,12 +25,14 @@ def fileExist(filename):
         # print 'cannot open', filename
         return False
 
+# Add a file to the scm folder
 def addFile(filename):
     srcfolder = os.getcwd()
     srcfile = os.path.join(srcfolder, filename)
     destfolder = os.path.join(srcfolder, '.scm')
     return shutil.copy(srcfile, destfolder)
 
+# return a file that is present both in foldername and cwd
 def discoverSCM(foldername):
     cwdfiles=os.listdir(os.getcwd())
     files = os.listdir(foldername)
@@ -32,8 +43,25 @@ def discoverSCM(foldername):
 def commitFile(filename):
     pass
 
-def diffFile(filename):
-    print 'diffing file',filename
+def diffFile():
+    newfile = discoverSCM('.scm')
+    oldfile = '.scm/'+newfile
+    result = filecmp.cmp(newfile, oldfile)
+    if result:
+        print 'Nothing to commit.'
+    else:
+        file1 = open(newfile,'r')
+        text1 = file1.readlines()
+        file1.close()
+        file2 = open(oldfile,'r')
+        text2 = file2.readlines()
+        file2.close()
+        d = Differ()
+        result = list(d.compare(text1, text2))
+        sys.stdout.writelines(result)
+        print ''
+        s = SequenceMatcher(None, text1, text2)
+        print 'Your files diff ratio is', s.ratio()
 
 def folderExist(foldername):
     cwd = os.getcwd()
@@ -95,6 +123,8 @@ def processArgs(argc, argv):
             helpUserMakeDecision()
         elif argv[0] == 'commit':
             print "commit"
+        elif argv[0] == 'diff':
+            diffFile()
         else:
             print argv[0], "- command not reconized. Type help for help."
     elif argc >= 3:
