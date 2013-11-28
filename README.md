@@ -12,13 +12,13 @@ Description
 
 Specification
 -------------------------
-# 1 argument
+### 1 argument
 ```$ python asst2.py```
 
 - This will return the unsupported message. While advising user to use specific commands.
 - So that user can learn from the message, what are the available operations about this program.
 
-# 2 arguments
+### 2 arguments
 ```
     $ python asst2.py init
     $ python asst2.py status
@@ -29,7 +29,7 @@ Specification
 - help: display help message
 - commit: commit change.
 
-# 3 or more arguments
+### 3 or more arguments
 ```
     $ python asst2.py add *
     $ python asst2.py diff
