@@ -13,6 +13,7 @@ def fileExist(filename):
         with open(filename):
             return True
     except IOError:
+        # print 'cannot open', filename
         return False
 
 def addFile(filename):
@@ -21,8 +22,18 @@ def addFile(filename):
     destfolder = os.path.join(srcfolder, '.scm')
     return shutil.copy(srcfile, destfolder)
 
-def commitFile(filename):
+def discoverSCM(foldername):
+    cwdfiles=os.listdir(os.getcwd())
+    files = os.listdir(foldername)
+    for item in files:
+        if item in cwdfiles:
+            return item
 
+def commitFile(filename):
+    pass
+
+def diffFile(filename):
+    print 'diffing file',filename
 
 def folderExist(foldername):
     cwd = os.getcwd()
@@ -41,7 +52,7 @@ def scmInit(path):
         else:
             raise
 
-def fileUnderControl(filename):
+def folderUnderControl(filename):
     if fileExist(filename) and folderExist('.scm'):
         destfolder = os.path.join(os.getcwd(),'.scm')
         if fileExist(os.path.join(destfolder, filename)):
@@ -68,7 +79,7 @@ def processArgs(argc, argv):
     elif argc == 2:
         if argv[0] == 'status':
             if (folderExist(scmdir)):
-                print "SCM is enabled in current folder."
+                print discoverSCM(scmdir)
             else:
                 print "No file in this directory is under SCM."
         elif argv[0] == 'add':
@@ -91,7 +102,7 @@ def processArgs(argc, argv):
             if folderExist(scmdir):
                 print 'adding:'
                 for item in argv[1:]:
-                    if fileUnderControl(item):
+                    if folderUnderControl(item):
                         print ' -',item,'already exist'
                     else:
                         addFile(item)
