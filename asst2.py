@@ -1,17 +1,20 @@
-# This is template assignment 2
-import sys, os, getopt, io, filecmp, errno
-# sys supports the commandline arguments.
+# CSC444 asst2.py
+
+import sys, os, getopt, filecmp, errno
 import shutil
-# for shell utility
+# shell utility for file manipulation
+
 from difflib import Differ, SequenceMatcher
+from pprint import pprint
+# Print diff
+
+
 #Each line of a Differ delta begins with a two-letter code:
 #'- '    line unique to sequence 1
 #'+ '    line unique to sequence 2
 #'  '    line common to both sequences
 #'? '    line not present in either input sequence
 
-from pprint import pprint
-# Print diff
 
 class Usage(Exception):
     def __init__(self, msg):
@@ -27,10 +30,19 @@ def fileExist(filename):
 
 # Add a file to the scm folder
 def addFile(filename):
-    srcfolder = os.getcwd()
-    srcfile = os.path.join(srcfolder, filename)
-    destfolder = os.path.join(srcfolder, '.scm')
-    return shutil.copy(srcfile, destfolder)
+    if fileExist(filename):
+        srcfolder = os.getcwd()
+        srcfile = os.path.join(srcfolder, filename)
+        destfolder = os.path.join(srcfolder, '.scm')
+        shutil.copy(srcfile, destfolder)
+        return True
+    else:
+        print "adding a file that does not exist! Quitting."
+        return False
+
+def getLatestFileName(branch):
+    if (folderExist('.scm')):
+        files = os.listdir(foldername)
 
 # return a file that is present both in foldername and cwd
 def discoverSCM(foldername):
@@ -73,6 +85,11 @@ def commitFile(branch):
         readfile.close()
         file1.close()
         print 'Committed version',version
+def comment(comment,branch):
+    if comment == '':
+        print  'on',branch,'- no comment'
+    else:
+        print 'comment on',branch,'-',comment
 
 def isSameFile(nu, old):
     return filecmp.cmp(nu, old)
@@ -126,9 +143,8 @@ def helpUserMakeDecision():
     print "CSC444 Software Engineering I: Assignment 2 Source Control Management System"
     print "python asst2.py - print this message"
     print "python asst2.py status - return if any file is under SCM"
-    print "python asst2.py status [filename] - find out if [filename] is under SCM"
     print "python asst2.py add [filename] - Source control [filename]"
-    print "python asst2.py commit - Commit the file whichever is under SCM"
+    print "python asst2.py commit branch comment- Commit the change, branch must be specified, and comment are optional."
     print "python asst2.py diff - Diff file which is under SCM"
 
 def processArgs(argc, argv):
@@ -139,7 +155,12 @@ def processArgs(argc, argv):
     elif argc == 2:
         if argv[0] == 'status':
             if (folderExist(scmdir)):
-                print discoverSCM(scmdir)
+                filename = discoverSCM(scmdir)
+                for item in os.listdir(scmdir):
+                    if filename in item:
+                        #print item[len(filename):]
+                        [x.strip() for x in item.split('.')]
+                        print x
             else:
                 print "No file in this directory is under SCM."
         elif argv[0] == 'add':
@@ -168,10 +189,12 @@ def processArgs(argc, argv):
                 print 'adding:'
                 for item in argv[1:]:
                     if folderUnderControl(item):
-                        print ' -',item,'already exist'
+                        print ' -',item,'already exist in repository!'
                     else:
-                        addFile(item)
-                        print ' -',item,'added.'
+                        if addFile(item):
+                            print ' -',item,'added.'
+                        else:
+                            print ' -',item,'skipped!'
                 print 'done.'
             else:
                 print "Initiate the tool first: python asst2.py init"
@@ -186,7 +209,7 @@ def processArgs(argc, argv):
         else:
             print argv[0], 'is not supported.'
     else:
-        print 'not supported'
+        print 'Usage not supported!'
     return 0
 
 def main(argv=None):
