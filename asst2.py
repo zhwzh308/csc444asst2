@@ -40,15 +40,48 @@ def discoverSCM(foldername):
         if item in cwdfiles:
             return item
 
-def commitFile(filename):
-    pass
+# UNIX touch, creach an empty file
+def touch(fname, times=None):
+    with file(fname, 'a'):
+        os.utime(fname, times)
+
+def determineVersion(branch):
+    filename = discoverSCM('.scm')
+    version = 1
+    for item in os.listdir(os.getcwd()+'/.scm'):
+        if branch in item:
+            version += 1
+    return str(version)
+
+def commitFile(branch):
+    newfile = discoverSCM('.scm')
+    oldfile = '.scm/'+newfile
+    version = determineVersion(branch)
+    if (version>'1'):
+        lastcheckin = oldfile+'.'+branch+'.'+str(int(version)-1)
+    else:
+        lastcheckin = oldfile
+    if isSameFile(newfile, lastcheckin):
+        print 'Nothing to commit.'
+    else:
+        toCommit = discoverSCM('.scm')
+        writefile = '.scm/' + toCommit+'.'+branch+'.'+version
+        touch(writefile)
+        readfile = open(toCommit,'r')
+        file1 = open(writefile,'w')
+        file1.writelines(readfile.readlines())
+        readfile.close()
+        file1.close()
+        print 'Committed version',version
+
+def isSameFile(nu, old):
+    return filecmp.cmp(nu, old)
 
 def diffFile():
     newfile = discoverSCM('.scm')
     oldfile = '.scm/'+newfile
-    result = filecmp.cmp(newfile, oldfile)
-    if result:
-        print 'Nothing to commit.'
+    if isSameFile(newfile, oldfile):
+        print "Source file equals to depository file"
     else:
         file1 = open(newfile,'r')
         text1 = file1.readlines()
@@ -59,7 +92,6 @@ def diffFile():
         d = Differ()
         result = list(d.compare(text1, text2))
         sys.stdout.writelines(result)
-        print ''
         s = SequenceMatcher(None, text1, text2)
         print 'Your files diff ratio is', s.ratio()
 
@@ -122,7 +154,10 @@ def processArgs(argc, argv):
         elif argv[0] == 'help':
             helpUserMakeDecision()
         elif argv[0] == 'commit':
-            print "commit"
+            if folderExist('.scm'):
+                commitFile('main')
+            else:
+                print 'Run init first!'
         elif argv[0] == 'diff':
             diffFile()
         else:
@@ -140,6 +175,14 @@ def processArgs(argc, argv):
                 print 'done.'
             else:
                 print "Initiate the tool first: python asst2.py init"
+        elif argv[0] == 'commit':
+            if folderExist(argv[1]):
+                commitFile(argv[1])
+            else:
+                print 'Nothing to commit for branch', argv[1]
+        elif argv[0] == 'init':
+            # commitFile(argv[1])
+            print "Create branch",argv[1]
         else:
             print argv[0], 'is not supported.'
     else:
