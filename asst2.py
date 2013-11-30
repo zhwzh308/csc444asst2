@@ -1,232 +1,317 @@
 # CSC444 asst2.py
-
 import sys, os, getopt, filecmp, errno
 import shutil
 # shell utility for file manipulation
 
+# difflib can generate delta. Here we imported two objects.
 from difflib import Differ, SequenceMatcher
+# a delta is printed by pprint
 from pprint import pprint
-# Print diff
-
-
 #Each line of a Differ delta begins with a two-letter code:
 #'- '    line unique to sequence 1
 #'+ '    line unique to sequence 2
 #'  '    line common to both sequences
 #'? '    line not present in either input sequence
 
+# To include custom function from another file
+#def include(filename):
+#    if os.path.exists(filename): 
+#        execfile(filename)
+
+# Check if a string is ASCII
+def isAscii(line):
+	try:
+		line.decode('ascii')
+	except UnicodeDecodeError:
+		# raise
+		return False
+	else:
+		return True
+	#finally:
+	#	pass
+# Check if a file is ASCII
+def isAsciiFile(filename):
+	f = open(filename, 'r')
+	for line in f.readlines():
+		if not isAscii(line):
+			f.close()
+			return False
+	f.close()
+	return True
 
 class Usage(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-
+	def __init__(self, msg):
+		self.msg = msg
+# See if a file exist.
 def fileExist(filename):
-    try:
-        with open(filename):
-            return True
-    except IOError:
-        # print 'cannot open', filename
-        return False
+	try:
+		with open(filename, 'r'):
+			return True
+	except IOError:
+		return False
+
+def branchExist(branch):
+	if folderExist('.scm'):
+		if fileExist(os.path.join('.scm',branch)):
+			return True
+	return False
+
+# UNIX touch, creach an empty file. It is thread safe.
+def touch(fname, times=None):
+	with file(fname, 'a'):
+		os.utime(fname, times)
+# Quick check if we comparing the same file.
+def isSameFile(nu, old):
+	if fileExist(nu) and fileExist(old):
+		return filecmp.cmp(nu, old)
+	else:
+		return False
+# Quick check if folder is present in current working directory
+def folderExist(foldername):
+	if os.path.exists(foldername):
+		return os.path.isdir(path)
+	else:
+		return False
+
+# Determine if current folder has been initialized for SCM
+def folderUnderControl():
+	if folderExist('.scm'):
+		if (fileExist(os.path.join('.scm','main'))):
+			return True
+		else:
+			return False
+	else:
+		return False
+
+# return a file name string that is the SCM file we currently versioning.
+def discoverSCMFile():
+	# List of file in cwd
+	if folderUnderControl():
+		files = os.listdir('.scm')
+		cwdfiles = os.listdir(os.path.getcwd())
+		for item in files:
+			if item in cwdfiles:
+				return item
+	else:
+		return None
+
+# Support Init command
+def scmInit(branch='main'):
+	scmdir = '.scm'
+	branchfile = os.path.join(scmdir,branch)
+	try:
+		os.makedirs(scmdir)
+		touch(branchfile)
+		print "Initiate Source Control... done"
+	except OSError as exc:
+		# Folder exist
+		if exc.errno == errno.EEXIST and os.path.isdir(scmdir):
+			if (fileExist(branchfile)):
+				print 'branch', branch, 'already exist!'
+			else:
+				touch(branchfile)
+				print 'branch', branch, 'created.'
+			pass
+		else:
+			raise
 
 # Add a file to the scm folder
 def addFile(filename):
-    if fileExist(filename):
-        srcfolder = os.getcwd()
-        srcfile = os.path.join(srcfolder, filename)
-        destfolder = os.path.join(srcfolder, '.scm')
-        shutil.copy(srcfile, destfolder)
-        return True
-    else:
-        print "adding a file that does not exist! Quitting."
-        return False
+	if fileExist(filename):
+		if folderExist('.scm'):
+			if fileExist(os.path.join('.scm',filename)):
+				print 'File',filename,'was added previously'
+				return False
+			else:
+				shutil.copy(filename, '.scm')
+				return True
+		else:
+			print 'Run init first'
+			return False
+	else:
+		print 'File',filename,'does not exist'
+		return False
 
-def getLatestFileName(branch):
-    if (folderExist('.scm')):
-        files = os.listdir(foldername)
+def getFileName(branch='main', version='0'):
+	# find version of the SCM file we currently versioning.
+	if folderUnderControl():
+		if version != '0':
+			version = getLatestVersion(branch)
+			if version == '0':
+				return False
+		for item in os.listdir('.scm'):
+			if branch in item:
+				if version in item:
+					return item
+	else:
+		print 'error getting latest file from',branch
+		return False
 
-# return a file that is present both in foldername and cwd
-def discoverSCM(foldername):
-    cwdfiles=os.listdir(os.getcwd())
-    files = os.listdir(foldername)
-    for item in files:
-        if item in cwdfiles:
-            return item
+def getVersionString(filename):
+	return filename.split(str='_')[1]
 
-# UNIX touch, creach an empty file
-def touch(fname, times=None):
-    with file(fname, 'a'):
-        os.utime(fname, times)
+def getLatestVersion(branch='main'):
+	if (folderExist('.scm')):
+		filemaster = os.path.join('.scm',branch)
+		if fileExist(filemaster):
+			f = open(filemaster,'r')
+			lines = f.readlines()
+			f.close()
+			version = ((lines[-1]).split())[0]
+			return version
+		else:
+			print 'branch does not exist'
+			return str(0)
+	else:
+		print 'Directory not initialized'
+		return str(0)
 
-def determineVersion(branch):
-    filename = discoverSCM('.scm')
-    version = 1
-    for item in os.listdir(os.getcwd()+'/.scm'):
-        if branch in item:
-            version += 1
-    return str(version)
+def checkoutFile(branch='main', version='0'):
+	if version == '0':
+		# Check out the newest
+		version = getLatestVersion(branch)
+		filename = os.path.join('.scm', getFileName(branch,version))
+		if fileExist(filename):
+			fw = open(discoverSCMFile(),'w')
+			fr = open(filename,'r')
+			fw.writelines(fr.readlines())
+			fw.close()
+			fr.close()
+		else:
+			print 'checkout file failed at',branch,'version',version
 
-def commitFile(branch):
-    newfile = discoverSCM('.scm')
-    oldfile = '.scm/'+newfile
-    version = determineVersion(branch)
-    if (version>'1'):
-        lastcheckin = oldfile+'.'+branch+'.'+str(int(version)-1)
-    else:
-        lastcheckin = oldfile
-    if isSameFile(newfile, lastcheckin):
-        print 'Nothing to commit.'
-    else:
-        toCommit = discoverSCM('.scm')
-        writefile = '.scm/' + toCommit+'.'+branch+'.'+version
-        touch(writefile)
-        readfile = open(toCommit,'r')
-        file1 = open(writefile,'w')
-        file1.writelines(readfile.readlines())
-        readfile.close()
-        file1.close()
-        print 'Committed version',version
-def comment(comment,branch):
-    if comment == '':
-        print  'on',branch,'- no comment'
-    else:
-        print 'comment on',branch,'-',comment
+def commitFile(branch='main'):
+	if folderUnderControl():
+		newfile = discoverSCMFile()
+		oldfile = '.scm/'+getFileName(branch)
+		if isSameFile(newfile, oldfile):
+			print 'Nothing to commit.'
+		else:
+			suffix = '.'+branch+'_'+str(int(getVersionString(getFileName(branch)))+1)
+			# suffix for next version file.
+			writefile = os.path.join('.scm',newfile)+suffix
+			touch(writefile)
+			readfile = open(toCommit,'r')
+			file1 = open(writefile,'w')
+			file1.writelines(readfile.readlines())
+			readfile.close()
+			file1.close()
+			print 'Committed version',version
 
-def isSameFile(nu, old):
-    return filecmp.cmp(nu, old)
+def comment(comment,branch,version):
+	if comment == '':
+		print  'on',branch,'- no comment'
+	else:
+		print 'comment on',branch,'-',comment
+
+# Create diff helper if needed.
 
 def diffFile():
-    newfile = discoverSCM('.scm')
-    oldfile = '.scm/'+newfile
-    if isSameFile(newfile, oldfile):
-        print "Source file equals to depository file"
-    else:
-        file1 = open(newfile,'r')
-        text1 = file1.readlines()
-        file1.close()
-        file2 = open(oldfile,'r')
-        text2 = file2.readlines()
-        file2.close()
-        d = Differ()
-        result = list(d.compare(text1, text2))
-        sys.stdout.writelines(result)
-        s = SequenceMatcher(None, text1, text2)
-        print 'Your files diff ratio is', s.ratio()
-
-def folderExist(foldername):
-    cwd = os.getcwd()
-    path = os.path.join(cwd, foldername)
-    if os.path.exists(path):
-        return os.path.isdir(path)
-    else:
-        return False
-
-def scmInit(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc: # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            raise
-
-def folderUnderControl(filename):
-    if fileExist(filename) and folderExist('.scm'):
-        destfolder = os.path.join(os.getcwd(),'.scm')
-        if fileExist(os.path.join(destfolder, filename)):
-            return True
-        else:
-            return False
-    else:
-        return False
+	if folderUnderControl():
+		newfile = discoverSCM('.scm')
+		oldfile = '.scm/'+newfile
+		if isSameFile(newfile, oldfile):
+			print "Source file equals to depository file"
+		else:
+			file1 = open(newfile,'r')
+			text1 = file1.readlines()
+			file1.close()
+			file2 = open(oldfile,'r')
+			text2 = file2.readlines()
+			file2.close()
+			d = Differ()
+			result = list(d.compare(text1, text2))
+			sys.stdout.writelines(result)
+			s = SequenceMatcher(None, text1, text2)
+			print 'Your files diff ratio is', s.ratio()
 
 def helpUserMakeDecision():
-    print "CSC444 Software Engineering I: Assignment 2 Source Control Management System"
-    print "python asst2.py - print this message"
-    print "python asst2.py status - return if any file is under SCM"
-    print "python asst2.py add [filename] - Source control [filename]"
-    print "python asst2.py commit branch comment- Commit the change, branch must be specified, and comment are optional."
-    print "python asst2.py diff - Diff file which is under SCM"
+	print '''
+	CSC444 Software Engineering I: Assignment 2 Source Control Management System
+	python asst2.py help - print this message
+	python asst2.py init - Initiate SCM
+	python asst2.py add - return if any file is under SCM
+	python asst2.py add [filename] - Source control [filename]
+	python asst2.py commit branch [comment] - Commit the change, branch must be specified, and comment are optional.
+	python asst2.py checkout - Diff file which is under SCM
+	python asst2.py List - Diff file which is under SCM
+	python asst2.py branch X- fork a new branch named X based on main
+	python asst2.py branch X Y- fork a new branch Y based on X.
+	python asst2.py diff - Diff file which is under SCM
+	'''
 
 def processArgs(argc, argv):
-    # current working dir.
-    scmdir = '.scm'
-    if argc == 1:
-        helpUserMakeDecision()
-    elif argc == 2:
-        if argv[0] == 'status':
-            if (folderExist(scmdir)):
-                filename = discoverSCM(scmdir)
-                for item in os.listdir(scmdir):
-                    if filename in item:
-                        #print item[len(filename):]
-                        [x.strip() for x in item.split('.')]
-                        print x
-            else:
-                print "No file in this directory is under SCM."
-        elif argv[0] == 'add':
-            print "Add: need filename"
-            helpUserMakeDecision()
-        elif (argv[0] == 'init'):
-            if folderExist(scmdir):
-                print "nothing to be done - this directory has file under SCM."
-            else:
-                scmInit(scmdir)
-                print "Initiate Source Control... done"
-        elif argv[0] == 'help':
-            helpUserMakeDecision()
-        elif argv[0] == 'commit':
-            if folderExist('.scm'):
-                commitFile('main')
-            else:
-                print 'Run init first!'
-        elif argv[0] == 'diff':
-            diffFile()
-        else:
-            print argv[0], "- command not reconized. Type help for help."
-    elif argc >= 3:
-        if argv[0] == 'add':
-            if folderExist(scmdir):
-                print 'adding:'
-                for item in argv[1:]:
-                    if folderUnderControl(item):
-                        print ' -',item,'already exist in repository!'
-                    else:
-                        if addFile(item):
-                            print ' -',item,'added.'
-                        else:
-                            print ' -',item,'skipped!'
-                print 'done.'
-            else:
-                print "Initiate the tool first: python asst2.py init"
-        elif argv[0] == 'commit':
-            if folderExist(argv[1]):
-                commitFile(argv[1])
-            else:
-                print 'Nothing to commit for branch', argv[1]
-        elif argv[0] == 'init':
-            # commitFile(argv[1])
-            print "Create branch",argv[1]
-        else:
-            print argv[0], 'is not supported.'
-    else:
-        print 'Usage not supported!'
-    return 0
+	# print argc, argv argv starts after python *.py, argv[0] would be the command
+	if argc == 0:
+		return 2
+	else:
+		# we judge by command
+		command = argv[0]
+		if command == 'init':
+			if argc == 1:
+				scmInit()
+			elif argc==2:
+				scmInit(argv[1])
+			else:
+				print 'Bad usage, init, or init branch'
+		elif command == 'add':
+			if argc == 2:
+				pass
+			else:
+				print 'Bad usage, add filename'
+		elif command == 'commit':
+			if argc == 1:
+				pass
+			elif argc == 2:
+				pass
+			elif argc == 3:
+				pass
+			else:
+				print 'Bad usage, commit [branch] [comment]'
+		elif command == 'checkout':
+			if argc == 2:
+				pass
+			elif argc == 3:
+				pass
+			elif argc == 4:
+				pass
+			else:
+				print 'Bad usage, checkout # or checkout branch #'
+		elif command == 'list':
+			if argc == 1:
+				pass
+			elif argc == 2:
+				pass
+			else:
+				print 'Bad usage, list [branch]'
+		elif command == 'branch':
+			if argc == 2:
+				pass
+			elif argc == 3:
+				pass
+			else:
+				print 'Bad usage, branch target or branch source target'
+		else:
+			print 'Matched none. Your command is incorrect.'
+			return 2
+	return 0
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv
-    try:
-        try:
-            opts, args = getopt.getopt(argv[1:],"h",["help"])
-        except getopt.error, msg:
-            raise Usage(msg)
-    except Usage, err:
-        print >> sys.stderr, err.msg
-        print >> sys.stderr, "for help use --help"
-        return 2
-    return processArgs(len(argv), args)
+	if argv is None:
+		argv = sys.argv
+		try:
+			try:
+				opts, args = getopt.getopt(argv[1:],"h",["help"])
+			except getopt.getopt, msg:
+				raise Usage(msg)
+		except Usage, err:
+			print >> sys.stderr, err.msg
+			print >> sys.stderr, "for help use --help"
+			return 2
+		result = processArgs(len(args), args)
+		if result == 2:
+			helpUserMakeDecision()
+		return result
 
 if __name__ == "__main__":
-    sys.exit(main())
-
-
+	sys.exit(main())
