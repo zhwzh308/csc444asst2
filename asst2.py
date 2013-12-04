@@ -15,7 +15,7 @@ from pprint import pprint
 
 # To include custom function from another file
 #def include(filename):
-#    if os.path.exists(filename): 
+#    if os.path.exists(filename):
 #        execfile(filename)
 
 # Check if a string is ASCII
@@ -27,17 +27,20 @@ def isAscii(line):
 		return False
 	else:
 		return True
-	#finally:
-	#	pass
+	# Return True after line.decode.
+
 # Check if a file is ASCII
 def isAsciiFile(filename):
-	f = open(filename, 'r')
-	for line in f.readlines():
-		if not isAscii(line):
-			f.close()
-			return False
-	f.close()
-	return True
+	if fileExist(filename):
+		f = open(filename, 'r')
+		for line in f.readlines():
+			if not isAscii(line):
+				f.close()
+				return False
+		f.close()
+		return True
+	else:
+		return False
 
 class Usage(Exception):
 	def __init__(self, msg):
@@ -52,6 +55,7 @@ def fileExist(filename):
 
 def branchExist(branch):
 	if folderExist('.scm'):
+		# Only if the branch file exist.
 		if fileExist(os.path.join('.scm',branch)):
 			return True
 	return False
@@ -69,7 +73,7 @@ def isSameFile(nu, old):
 # Quick check if folder is present in current working directory
 def folderExist(foldername):
 	if os.path.exists(foldername):
-		return os.path.isdir(path)
+		return os.path.isdir(foldername)
 	else:
 		return False
 
@@ -87,9 +91,11 @@ def folderUnderControl():
 def discoverSCMFile():
 	# List of file in cwd
 	if folderUnderControl():
+		# Safe to assume there is .scm.
 		files = os.listdir('.scm')
-		cwdfiles = os.listdir(os.path.getcwd())
+		cwdfiles = os.listdir(os.getcwd())
 		for item in files:
+			# return the first one is sufficient
 			if item in cwdfiles:
 				return item
 	else:
@@ -97,6 +103,7 @@ def discoverSCMFile():
 
 # Support Init command
 def scmInit(branch='main'):
+	# Default behavior: initialize main branch.
 	scmdir = '.scm'
 	branchfile = os.path.join(scmdir,branch)
 	try:
@@ -123,6 +130,7 @@ def addFile(filename):
 				print 'File',filename,'was added previously'
 				return False
 			else:
+				print 'adding',filename
 				shutil.copy(filename, '.scm')
 				return True
 		else:
@@ -136,40 +144,40 @@ def getFileName(branch='main', version='0'):
 	# find version of the SCM file we currently versioning.
 	if folderUnderControl():
 		if version != '0':
-			version = getLatestVersion(branch)
-			if version == '0':
-				return False
-		for item in os.listdir('.scm'):
-			if branch in item:
-				if version in item:
-					return item
+			# If we want a specific version
+			for item in os.listdir('.scm'):
+				if branch in item:
+					if version in item:
+						# Both branch name and version string is present in the file.
+						return item
+		else:
+			# want the latest version
+			baseversion = '1'
+			files = os.listdir('.scm')
+			if len(files)>1:
+				qualifier = '.'+branch+'_'
+				toreturn = files[1]
+				for item in files:
+					if qualifier in item:
+						if int(baseversion) < int(getVersionString(item)):
+							toreturn = item
+			else:
+				toreturn = files[0]
+			return toreturn
 	else:
-		print 'error getting latest file from',branch
-		return False
+		print 'Folder is not under SCM.'
+		return '0'
 
 def getVersionString(filename):
-	return filename.split(str='_')[1]
-
-def getLatestVersion(branch='main'):
-	if (folderExist('.scm')):
-		filemaster = os.path.join('.scm',branch)
-		if fileExist(filemaster):
-			f = open(filemaster,'r')
-			lines = f.readlines()
-			f.close()
-			version = ((lines[-1]).split())[0]
-			return version
-		else:
-			print 'branch does not exist'
-			return str(0)
+	localtmp = filename.split('_')
+	if (len(localtmp)>1):
+		return localtmp[1]
 	else:
-		print 'Directory not initialized'
-		return str(0)
+		return '0'
 
 def checkoutFile(branch='main', version='0'):
-	if version == '0':
-		# Check out the newest
-		version = getLatestVersion(branch)
+	if folderUnderControl():
+		version = getFileName(branch, version)
 		filename = os.path.join('.scm', getFileName(branch,version))
 		if fileExist(filename):
 			fw = open(discoverSCMFile(),'w')
@@ -179,11 +187,17 @@ def checkoutFile(branch='main', version='0'):
 			fr.close()
 		else:
 			print 'checkout file failed at',branch,'version',version
+	else:
+		print 'initialize SCM first.'
 
 def commitFile(branch='main'):
+	# since version number is assigned to the
+	# commit, the user is not allowed to specify
+	# the number
 	if folderUnderControl():
 		newfile = discoverSCMFile()
 		oldfile = '.scm/'+getFileName(branch)
+		#print 'comparing with',oldfile
 		if isSameFile(newfile, oldfile):
 			print 'Nothing to commit.'
 		else:
@@ -191,14 +205,37 @@ def commitFile(branch='main'):
 			# suffix for next version file.
 			writefile = os.path.join('.scm',newfile)+suffix
 			touch(writefile)
-			readfile = open(toCommit,'r')
+			readfile = open(newfile,'r')
 			file1 = open(writefile,'w')
 			file1.writelines(readfile.readlines())
 			readfile.close()
 			file1.close()
-			print 'Committed version',version
+			print 'Commit success'
+	else:
+		print 'You cannot commit, the scm is not initialized.'
 
-def comment(comment,branch,version):
+def branchCreate(branch='main'):
+	# assume the command was ran to confirm branch is not there.
+	touch(os.path.join('.scm',branch))
+
+def branchGenerate(branchX='main',branchY='default'):
+	if os.path.exists(os.path.join('.scm',branchY)):
+		print "Branch",branchY,'exist'
+	else:
+		branchCreate(branchY);
+	suffix = '.'+branch+'_1'
+	source = os.path.join('.scm',discoverSCM())
+	dest = source+suffix
+	touch(os.path.join('.scm', dest))
+	f1= open((os.path.join('.scm',source)),'r')
+	f2= open((os.path.join('.scm',dest)),'w')
+	f2.writelines(f1.readlines())
+	f1.close()
+	f2.close()
+	print 'Branched file',source,'from main to',branchY
+
+
+def comment(comment='',branch='main'):
 	if comment == '':
 		print  'on',branch,'- no comment'
 	else:
@@ -208,7 +245,7 @@ def comment(comment,branch,version):
 
 def diffFile():
 	if folderUnderControl():
-		newfile = discoverSCM('.scm')
+		newfile = discoverSCMFile()
 		oldfile = '.scm/'+newfile
 		if isSameFile(newfile, oldfile):
 			print "Source file equals to depository file"
@@ -228,75 +265,117 @@ def diffFile():
 def helpUserMakeDecision():
 	print '''
 	CSC444 Software Engineering I: Assignment 2 Source Control Management System
-	python asst2.py help - print this message
-	python asst2.py init - Initiate SCM
+	Usage:
+	python asst2.py help - print this message.
+	python asst2.py init - Initiate SCM, create main.
 	python asst2.py add - return if any file is under SCM
 	python asst2.py add [filename] - Source control [filename]
-	python asst2.py commit branch [comment] - Commit the change, branch must be specified, and comment are optional.
-	python asst2.py checkout - Diff file which is under SCM
-	python asst2.py List - Diff file which is under SCM
+	python asst2.py commit branch comment - Commit the change, branch must be specified, and comment are optional.
+	python asst2.py checkout - checkout version from branch
+	python asst2.py list - list all files in all branches. 
 	python asst2.py branch X- fork a new branch named X based on main
 	python asst2.py branch X Y- fork a new branch Y based on X.
 	python asst2.py diff - Diff file which is under SCM
 	'''
+
+def listSCM():
+	filename = discoverSCMFile()
+	if filename == None:
+		print 'Please initialized directory first.'
+	else:
+		qualifier = filename+'.'
+		print 'file:',filename
+		for item in os.listdir('.scm'):
+			if qualifier in item:
+				print 'branch:', item.split('_')[0].split('.')[2], 'version:', item.split('_')[1]
 
 def processArgs(argc, argv):
 	# print argc, argv argv starts after python *.py, argv[0] would be the command
 	if argc == 0:
 		return 2
 	else:
-		# we judge by command
 		command = argv[0]
 		if command == 'init':
 			if argc == 1:
+				# default case: get main branch running.
 				scmInit()
 			elif argc==2:
-				scmInit(argv[1])
+				# init a branch.
+				scmInit(branch=argv[1])
 			else:
-				print 'Bad usage, init, or init branch'
+				print 'Bad usage, init, or init _branch_'
 		elif command == 'add':
 			if argc == 2:
-				pass
+				# "add filename"
+				addFile(argv[1])
 			else:
 				print 'Bad usage, add filename'
 		elif command == 'commit':
 			if argc == 1:
-				pass
+				# commit, no branch nor comment
+				commitFile()
 			elif argc == 2:
-				pass
+				# commit file with branch
+				commitFile(branch=argv[1])
 			elif argc == 3:
-				pass
+				# commit file with branch and comment.
+				commitFile(branch=argv[1])
+				comment(argv[1],argv[2])
 			else:
 				print 'Bad usage, commit [branch] [comment]'
 		elif command == 'checkout':
 			if argc == 2:
-				pass
+				# Checkout newest main
+				checkoutFile()
 			elif argc == 3:
-				pass
+				# Checkout a version from main.
+				checkoutFile(version=argv[1])
+				print 'Version',argv[1],'from main checked out.'
 			elif argc == 4:
-				pass
+				# Checkout a version
+				checkoutFile(branch=argv[1],version=argv[2])
+				print 'Version',argv[1],'from', argv[2], 'checked out.'
 			else:
 				print 'Bad usage, checkout # or checkout branch #'
 		elif command == 'list':
 			if argc == 1:
-				pass
+				listSCM()
 			elif argc == 2:
-				pass
+				listSCM(argv[1])
 			else:
 				print 'Bad usage, list [branch]'
 		elif command == 'branch':
-			if argc == 2:
-				pass
+			if argc == 1:
+				print 'Please specify the branch name'
+			elif argc == 2:
+				if branchExist(argv[1]):
+					print 'branch exist!'
+				else:
+					branchCreate(argv[1])
 			elif argc == 3:
-				pass
+				if branchExist(argv[1]):
+					if branchExist(argv[2]):
+						print 'giving up branch:',argv[2],' does not exist.'
+					else:
+						diffFile()
+						branchCreate(argv[1],argv[2])
+						checkoutFile()
+				else:
+					print 'Fault: not able to branch from',argv[1]
 			else:
-				print 'Bad usage, branch target or branch source target'
+				print 'Bad usage, branch _target_ or branch _source_ _target_'
+		elif command == 'diff':
+			if argc == 1:
+				diffFile()
+			else:
+				print 'Diff is an experimental funtionality. It is helpful to generate branches.'
 		else:
 			print 'Matched none. Your command is incorrect.'
 			return 2
 	return 0
 
 def main(argv=None):
+	# You calling main with argv. It is not expected
 	if argv is None:
 		argv = sys.argv
 		try:
@@ -312,6 +391,8 @@ def main(argv=None):
 		if result == 2:
 			helpUserMakeDecision()
 		return result
+	else:
+		print 'Unexpected usage.'
 
 if __name__ == "__main__":
 	sys.exit(main())
